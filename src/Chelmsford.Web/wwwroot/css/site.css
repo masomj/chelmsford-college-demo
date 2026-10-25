@@ -155,9 +155,11 @@ main:focus { outline: none; }
   display: inline-block; padding: 3px 9px; border-radius: var(--radius-sm);
   font-size: .82rem; font-weight: 700; line-height: 1.4;
 }
-.tag--blue { background: var(--tint-blue); color: var(--blue-dark); }
-.tag--green { background: var(--tint-green); color: var(--green-dark); }
-.tag--solid-green { background: var(--green); color: var(--navy); font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+/* Doubled class on purpose: tag colours must win over container text colours such as
+   `.hero p` / `.course-hero p` (white on brand green is 2.2:1 and fails WCAG AA). */
+.tag.tag--blue { background: var(--tint-blue); color: var(--blue-dark); }
+.tag.tag--green { background: var(--tint-green); color: var(--green-dark); }
+.tag.tag--solid-green { background: var(--green); color: var(--navy); font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; padding: 0; list-style: none; }
 
 .eyebrow { margin: 0 0 4px; font-size: .82rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--blue-hover); }
