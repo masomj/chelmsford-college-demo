@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Chelmsford.Core/Chelmsford.Core.csproj" />
+    <Project Path="src/Chelmsford.Infrastructure/Chelmsford.Infrastructure.csproj" />
+    <Project Path="src/Chelmsford.Web/Chelmsford.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Chelmsford.Tests/Chelmsford.Tests.csproj" />
+  </Folder>
+</Solution>

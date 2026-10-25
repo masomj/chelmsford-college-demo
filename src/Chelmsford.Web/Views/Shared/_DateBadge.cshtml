@@ -1,0 +1,5 @@
+@model EventInfo
+<span class="date-badge @(Model.Type == Chelmsford.Core.Events.EventTypes.OpenEvents ? "date-badge--blue" : null)" aria-hidden="true">
+    <span class="date-badge__month">@UkTime.MonthAbbrev(Model.StartsAt)</span>
+    <span class="date-badge__day">@Model.StartsAt.Day</span>
+</span>

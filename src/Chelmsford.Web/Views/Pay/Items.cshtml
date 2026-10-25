@@ -1,0 +1,66 @@
+@model ItemsViewModel
+@{
+    var payable = Model.Items.Where(i => i.CanPay).ToList();
+    var firstPayable = payable.FirstOrDefault()?.Item.Key;
+}
+
+<div class="wrap pay-layout">
+    <partial name="~/Views/Shared/_PayHeader.cshtml" model="Model" />
+    <h1>Choose a payment</h1>
+
+    <div class="paying-for">
+        <span class="paying-for__initial" aria-hidden="true">@Model.Subject.FirstName[..1]</span>
+        <div>
+            <p><strong>Paying for @Model.Subject.FirstName</strong></p>
+            <p class="muted">@Model.Subject.CourseTitle</p>
+        </div>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty-state">
+            <h2>Nothing to pay right now</h2>
+            <p>There are no payments due for @Model.Subject.FirstName's course. If you were expecting one, contact the college's finance team.</p>
+            <a class="btn btn--ghost" href="/make-a-payment/">Back to payments</a>
+        </div>
+    }
+    else
+    {
+        <form method="post" action="/pay/items" novalidate>
+            @Html.AntiForgeryToken()
+            <fieldset class="item-list" id="item" aria-describedby="@(Model.Errors.ContainsKey("item") ? "item-error" : null)">
+                <legend>Payments due</legend>
+                @if (Model.Errors.TryGetValue("item", out var err))
+                {
+                    <span class="field__error" id="item-error">@err</span>
+                }
+                <div class="item-options">
+                    @foreach (var d in Model.Items)
+                    {
+                        var i = d.Item;
+                        var id = "item-" + i.Key.ToString("N");
+                        var meta = new List<string>();
+                        if (i.TakesPlaceOn is { } on) meta.Add(UkTime.DayAndDate(on));
+                        if (i.DueDate is { } due) meta.Add("Due by " + UkTime.Date(due));
+                        if (d.PlacesLeft is { } left && !d.AlreadyPaid && !d.Closed) meta.Add(left == 0 ? "No places left" : left == 1 ? "1 place left" : $"{left} places left");
+                        var reason = d.AlreadyPaid ? "Already paid" : d.Closed ? "Payment closed" : d.SoldOut ? "Fully booked" : null;
+                        <label class="pay-item @(d.CanPay ? null : "pay-item--disabled")" for="@id">
+                            <input type="radio" id="@id" name="item" value="@i.Key" disabled="@(!d.CanPay)" checked="@(d.CanPay && i.Key == firstPayable && payable.Count == 1)">
+                            <span class="pay-item__body">
+                                <span class="pay-item__type">@i.TypeName</span>
+                                <span class="pay-item__name">@i.Name</span>
+                                @if (meta.Count > 0) { <span class="pay-item__meta">@string.Join(" · ", meta)</span> }
+                                @if (reason is not null) { <span class="pay-item__meta"><strong>@reason</strong></span> }
+                            </span>
+                            <span class="pay-item__price">@UkTime.Money(i.AmountPence)</span>
+                        </label>
+                    }
+                </div>
+            </fieldset>
+            @if (payable.Count > 0)
+            {
+                <button class="btn btn--block mt-m" type="submit">Continue</button>
+            }
+        </form>
+    }
+</div>

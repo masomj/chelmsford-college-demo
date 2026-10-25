@@ -1,0 +1,41 @@
+# Chelmsford College website demo.
+#
+# Runs on the Hetzner dev server behind an existing Caddy container (which
+# belongs to a separate compose stack). This service joins Caddy's Docker
+# network so Caddy can reach it as chelmsford-demo:8080. No ports are
+# published on the host. See deploy/DEPLOY.md.
+
+name: chelmsford-college-demo
+
+services:
+  chelmsford-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chelmsford-college-demo:latest
+    container_name: chelmsford-demo
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - data:/app/data
+      - media:/app/media
+      - ./college-content:/app/college-content:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+    networks:
+      - caddy
+
+volumes:
+  data:
+  media:
+
+networks:
+  caddy:
+    # The default network of the compose project that runs Caddy. Check the
+    # name on the server with `docker network ls`; override in .env if needed.
+    name: ${CADDY_NETWORK:-caddy_default}
+    external: true

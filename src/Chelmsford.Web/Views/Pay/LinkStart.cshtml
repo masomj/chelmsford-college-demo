@@ -1,0 +1,22 @@
+@model LinkStartViewModel
+
+<div class="wrap pay-layout">
+    <partial name="~/Views/Shared/_PayHeader.cshtml" model="Model" />
+    <h1>Pay with a payment link</h1>
+    <p class="lead">When something needs paying, such as a course deposit, the college emails a secure payment link to the applicant or student. They can pay themselves or forward it to whoever is paying.</p>
+    <ul>
+        <li>Each link is for one person and one payment</li>
+        <li>It works once, and stops working after 7 days</li>
+        <li>You don't need an account or a student ID</li>
+    </ul>
+    <p>To use your link, open it from the email. If it has expired, ask the college to send a new one.</p>
+
+    <div class="panel panel--green">
+        <h2>Try it in the demo</h2>
+        <p>Create a real, single-use payment link for applicant Ruby Hughes (APP-2027-00412) and her creative industries course deposit, as the admissions team would.</p>
+        <form method="post" action="/pay/link/demo">
+            @Html.AntiForgeryToken()
+            <button class="btn" type="submit">Create a demo payment link</button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,152 @@
+@model DataFlowViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    IReadOnlyList<(string Text, string? Url)> crumbs = [("Home", "/"), ("How the course data gets here", null)];
+    var run = Model.LastRun;
+    string Raw(string? value)
+    {
+        if (value is null) return "(null)";
+        return value.Length > 600 ? value[..600] + " …[truncated]" : value;
+    }
+}
+
+<div class="wrap page-bottom">
+    <partial name="~/Views/Shared/_Breadcrumb.cshtml" model="crumbs" />
+    <div class="prose">
+        <p class="eyebrow">For the tender panel</p>
+        <h1>How the course data gets here</h1>
+        <p class="lead">Every course page on this site comes from the college's own course tables. Nobody retypes anything. Here is the route the data takes, and what the cleaning step does to it.</p>
+    </div>
+
+    <section class="section" aria-labelledby="flow-heading">
+        <h2 id="flow-heading">From the college's tables to the course page</h2>
+        <ol class="flow">
+            <li class="flow__step flow__step--source">
+                <h3>College SQL tables</h3>
+                <p>The existing course tables: courses, sections, levels, funding and the link tables between them.</p>
+            </li>
+            <li class="flow__step">
+                <h3>Read-only integration layer</h3>
+                <p>Connects with a read-only login and reads a snapshot every @Configuration.GetValue("Integration:SyncIntervalMinutes", 5) minutes.</p>
+            </li>
+            <li class="flow__step">
+                <h3>Cleaning</h3>
+                <p>Strips old markup and Bootstrap buttons, turns the text 'NULL' into real blanks, removes _x000D_ artefacts and maps levels and funding into plain English.</p>
+            </li>
+            <li class="flow__step flow__step--site">
+                <h3>Website database</h3>
+                <p>The website's own copy. Unchanged courses are skipped; removed courses are hidden, never deleted.</p>
+            </li>
+            <li class="flow__step flow__step--page">
+                <h3>Course pages</h3>
+                <p>One template for every course. Marketing staff add photos, video and student stories in the CMS.</p>
+            </li>
+        </ol>
+        <p class="flow-caption">The college's tables are never written to. If the source is unavailable, the website keeps running on the last synced copy and tries again on the next run.</p>
+    </section>
+
+    <section class="section" id="sync" aria-labelledby="sync-heading">
+        <h2 id="sync-heading">Last sync</h2>
+        @if (Model.JustSynced)
+        {
+            <div class="notice notice--success" role="status"><p>Sync finished. The figures below are from the run you just started.</p></div>
+        }
+        @if (run is null)
+        {
+            <p>No sync has run yet.</p>
+        }
+        else
+        {
+            var started = UkTime.FromUtc(run.StartedUtc);
+            var seconds = Math.Max(0, (run.FinishedUtc - run.StartedUtc).TotalSeconds);
+            <p>
+                <strong>@(run.Status == Chelmsford.Core.Integration.SyncStatus.Succeeded ? "Succeeded" : "Failed")</strong>
+                on @UkTime.Date(started) at @started.ToString("HH:mm:ss", UkTime.Culture) (UK time), started by: @run.Trigger.
+                Took @seconds.ToString("0.0", UkTime.Culture) seconds.
+            </p>
+            <dl class="stats">
+                <div><dt>Courses read</dt><dd>@run.CoursesRead</dd></div>
+                <div><dt>Added</dt><dd>@run.Added</dd></div>
+                <div><dt>Updated</dt><dd>@run.Updated</dd></div>
+                <div><dt>Unchanged</dt><dd>@run.Unchanged</dd></div>
+                <div><dt>Removed</dt><dd>@run.Removed</dd></div>
+                <div><dt>Students synced</dt><dd>@run.StudentsSynced</dd></div>
+            </dl>
+            @if (!string.IsNullOrEmpty(run.Message))
+            {
+                <p class="muted">@run.Message</p>
+            }
+        }
+        <form method="post" action="/how-the-data-gets-here/sync" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="course" value="@Model.SelectedCourseId">
+            <button class="btn" type="submit">Sync now</button>
+        </form>
+    </section>
+
+    <section class="section" aria-labelledby="compare-heading">
+        <h2 id="compare-heading">Before and after cleaning</h2>
+        @if (Model.SourceError is { } err)
+        {
+            <div class="notice notice--warning"><p>@err</p></div>
+        }
+        @if (Model.CourseOptions.Count > 0)
+        {
+            <form class="month-form" method="get" action="/how-the-data-gets-here">
+                <div class="field">
+                    <label class="field__label" for="course">Course</label>
+                    <select class="select" id="course" name="course">
+                        @foreach (var (id, title) in Model.CourseOptions)
+                        {
+                            <option value="@id" selected="@(id == Model.SelectedCourseId)">@title (@id)</option>
+                        }
+                    </select>
+                </div>
+                <button class="btn btn--ghost" type="submit">Show course</button>
+            </form>
+        }
+
+        @if (Model.Cleaned is { } c)
+        {
+            <p>
+                Mapped as <strong>@c.Subject</strong>, <strong>@c.LevelLong</strong>, <strong>@c.StudyMode</strong>,
+                campus <strong>@c.Campus</strong>.
+                @if (Model.CourseUrl is { } url)
+                {
+                    <a href="@url">See the course page</a>
+                }
+            </p>
+            <p class="field__hint">Campus is a labelled demo mapping from subject area, because the demo data has no campus field. In the real build it comes from the college's data once the source is confirmed in discovery.</p>
+        }
+
+        <div class="compare">
+            @foreach (var field in Model.Fields)
+            {
+                <div class="compare__row">
+                    <h3>@field.Label</h3>
+                    <div>
+                        <span class="compare__label">Raw: @field.Column</span>
+                        <pre class="raw" tabindex="0" aria-label="Raw value of @field.Column from the college's data">@Raw(field.Raw)</pre>
+                    </div>
+                    <div>
+                        <span class="compare__label">On the website</span>
+                        <div class="cleaned">
+                            @if (string.IsNullOrWhiteSpace(field.Cleaned))
+                            {
+                                <p class="muted">(left blank)</p>
+                            }
+                            else if (field.CleanedIsHtml)
+                            {
+                                @Html.RichText(field.Cleaned)
+                            }
+                            else
+                            {
+                                <p>@field.Cleaned</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+</div>

@@ -1,0 +1,24 @@
+@model SignInViewModel
+
+<div class="wrap pay-layout">
+    <partial name="~/Views/Shared/_PayHeader.cshtml" model="Model" />
+    <h1>Sign in</h1>
+    <div class="notice notice--info">
+        <h2>Demo sign-in</h2>
+        <p>On the live site, students sign in with their college Microsoft account (Entra ID). For this demo, choose a student:</p>
+    </div>
+    <form method="post" action="/pay/sign-in">
+        @Html.AntiForgeryToken()
+        <ul class="demo-choices" id="student">
+            @foreach (var s in Model.Students)
+            {
+                <li>
+                    <button class="pay-route" type="submit" name="studentId" value="@s.StudentId">
+                        <span class="pay-route__icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" focusable="false"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></span>
+                        <span><span class="pay-route__title">Sign in as @s.Name</span><span class="pay-route__text">@s.Course student, ID @s.StudentId</span></span>
+                    </button>
+                </li>
+            }
+        </ul>
+    </form>
+</div>

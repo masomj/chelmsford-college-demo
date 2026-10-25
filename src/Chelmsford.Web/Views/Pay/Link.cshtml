@@ -1,0 +1,69 @@
+@model LinkViewModel
+@{
+    var item = Model.Link.Item;
+    var subject = Model.Link.Subject;
+    string? Err(string key) => Model.Errors.TryGetValue(key, out var m) ? m : null;
+}
+
+<div class="wrap pay-layout">
+    <partial name="~/Views/Shared/_PayHeader.cshtml" model="Model" />
+    <h1>Pay your @item.TypeName.ToLowerInvariant()</h1>
+
+    <div class="paying-for">
+        <span class="paying-for__initial" aria-hidden="true">@subject.FirstName[..1]</span>
+        <div>
+            <p><strong>Paying for @subject.FirstName (applicant)</strong></p>
+            <p class="muted">@subject.CourseTitle</p>
+        </div>
+    </div>
+
+    <dl class="summary-list">
+        <div><dt>Payment</dt><dd>@item.Name</dd></div>
+        @if (item.DueDate is { } due)
+        {
+            <div><dt>Due by</dt><dd>@UkTime.Date(due)</dd></div>
+        }
+        <div class="summary-list__total"><dt>Total</dt><dd>@UkTime.Money(item.AmountPence)</dd></div>
+    </dl>
+    @if (!string.IsNullOrEmpty(item.Description))
+    {
+        <p>@item.Description</p>
+    }
+
+    <form method="post" action="/pay/link/@Uri.EscapeDataString(Model.Token)" novalidate>
+        @Html.AntiForgeryToken()
+        <fieldset class="field">
+            <legend>Who is paying?</legend>
+            <label class="radio"><input type="radio" name="someoneElse" value="false" checked="@(!Model.SomeoneElse)"> <span>@subject.FirstName is paying</span></label>
+            <label class="radio"><input type="radio" name="someoneElse" value="true" checked="@Model.SomeoneElse" aria-controls="payer-fields"> <span>Someone else is paying</span></label>
+        </fieldset>
+
+        <div id="payer-fields" class="panel mb-m">
+            <p class="field__hint">Only needed if someone else is paying, such as a parent or carer.</p>
+            <div class="field @(Err("payerName") is null ? null : "field--error")">
+                <label class="field__label" for="payerName">Your full name</label>
+                @if (Err("payerName") is { } a) { <span class="field__error" id="payerName-error">@a</span> }
+                <input class="input" id="payerName" name="payerName" autocomplete="name" value="@Model.PayerName" aria-describedby="@(Err("payerName") is null ? null : "payerName-error")">
+            </div>
+            <div class="field @(Err("payerEmail") is null ? null : "field--error")">
+                <label class="field__label" for="payerEmail">Your email address</label>
+                <span class="field__hint" id="payerEmail-hint">We'll send your receipt here</span>
+                @if (Err("payerEmail") is { } b) { <span class="field__error" id="payerEmail-error">@b</span> }
+                <input class="input" id="payerEmail" name="payerEmail" type="email" autocomplete="email" spellcheck="false" value="@Model.PayerEmail" aria-describedby="payerEmail-hint@(Err("payerEmail") is null ? null : " payerEmail-error")">
+            </div>
+            <div class="field @(Err("relationship") is null ? null : "field--error")">
+                <label class="field__label" for="relationship">Your relationship to @subject.FirstName</label>
+                @if (Err("relationship") is { } c) { <span class="field__error" id="relationship-error">@c</span> }
+                <select class="select" id="relationship" name="relationship" aria-describedby="@(Err("relationship") is null ? null : "relationship-error")">
+                    <option value="">Choose one</option>
+                    @foreach (var r in FindStudentViewModel.Relationships)
+                    {
+                        <option value="@r" selected="@(Model.Relationship == r)">@r</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <button class="btn btn--block" type="submit">Continue</button>
+    </form>
+</div>

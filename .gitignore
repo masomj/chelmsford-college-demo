@@ -1,0 +1,21 @@
+## Build output
+bin/
+obj/
+*.user
+.vs/
+.idea/
+.vscode/
+TestResults/
+
+## College-supplied tender material (logos, photos, course spreadsheet).
+## Never commit: mounted into the container at run time instead.
+/college-content/
+
+## Local data, databases and secrets
+/data/
+/backups/
+*.db
+*.db-shm
+*.db-wal
+.env
+appsettings.Local.json

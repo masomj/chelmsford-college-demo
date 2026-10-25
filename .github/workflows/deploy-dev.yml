@@ -1,0 +1,155 @@
+# Test, then deploy to the Hetzner dev server, on every push to main.
+#
+# The server builds the image itself, so nothing is pushed to a registry.
+# One-time server setup and the secrets this needs are in deploy/DEPLOY.md.
+#
+# Repository secrets:
+#   HETZNER_DEV_HOST         server IP or host name
+#   HETZNER_SSH_KEY          private key of a deploy key allowed to log in to the server
+#   HETZNER_HOST_FINGERPRINT the server's SSH host key fingerprint, the full
+#                            "SHA256:..." string. The deploy refuses to connect
+#                            to a server that presents a different key.
+name: Deploy to Dev
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "deploy/Caddyfile.snippet"
+      - ".env.example"
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits for the running one to finish.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+env:
+  SERVER_HOST: ${{ secrets.HETZNER_DEV_HOST }}
+  # root until a non-root deploy user is set up (see deploy/DEPLOY.md, "Optional: a non-root deploy user").
+  SERVER_USER: root
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Chelmsford.slnx
+
+      - name: Build
+        run: dotnet build Chelmsford.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Chelmsford.slnx -c Release --no-build
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Build and deploy on the server
+        # Pinned to the commit of tag v1.0.3, so a moved tag can't change what runs.
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
+        with:
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ env.SERVER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+
+            DEPLOY_PATH=/opt/chelmsford-college-demo
+            REPO_URL=https://github.com/masomj/chelmsford-college-demo.git
+            SITE_URL=https://chelmsford.vanguarddigitalsolutions.co.uk
+            SERVICE=chelmsford-demo
+
+            echo "=== Updating source ==="
+            if [ ! -d "$DEPLOY_PATH" ]; then
+              git clone "$REPO_URL" "$DEPLOY_PATH"
+            elif [ ! -d "$DEPLOY_PATH/.git" ]; then
+              # Folder exists without a checkout (e.g. college-content was copied first):
+              # check the repo out in place, leaving untracked files alone.
+              cd "$DEPLOY_PATH"
+              git init -q
+              git remote add origin "$REPO_URL"
+              git fetch --prune origin
+              git checkout -f -B main origin/main
+            else
+              cd "$DEPLOY_PATH"
+              git fetch --prune origin
+              git reset --hard origin/main
+            fi
+            cd "$DEPLOY_PATH"
+            echo "Deploying $(git rev-parse --short HEAD): $(git log -1 --pretty=%s)"
+
+            if [ ! -f .env ]; then
+              echo "ERROR: $DEPLOY_PATH/.env is missing."
+              echo "Create it from .env.example first. See deploy/DEPLOY.md, 'One-time setup', step 4."
+              exit 1
+            fi
+            if [ ! -d college-content/images ]; then
+              echo "WARNING: $DEPLOY_PATH/college-content is missing or empty."
+              echo "The site will run without the college's logo, photos and course data."
+              echo "Copy it from the laptop. See deploy/DEPLOY.md."
+            fi
+
+            echo "=== Building and starting the container ==="
+            docker compose up -d --build --remove-orphans
+            docker image prune -f
+
+            # /healthz returns 503 until Umbraco is fully running and the demo
+            # content is seeded, so keep polling while it does (up to 240s).
+            # /healthz is not behind the site's basic auth.
+            echo "=== Waiting for the site to be healthy (up to 240s) ==="
+            healthy=false
+            for i in $(seq 1 48); do
+              # Container status line, e.g. "Up 40 seconds (health: starting)"
+              status=$(docker ps -a --filter "name=^${SERVICE}\$" | tail -n +2 | grep -o '(health[^)]*)\|(healthy)\|(unhealthy)\|Exited.*' || echo "unknown")
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$SITE_URL/healthz" || true)
+              if [ "$code" = "200" ]; then
+                echo "Healthy via $SITE_URL/healthz after $((i * 5))s"
+                healthy=true
+                break
+              fi
+              # Fallback: ask the container directly, in case DNS or Caddy is not set up yet.
+              if docker compose exec -T "$SERVICE" curl -fsS --max-time 5 http://localhost:8080/healthz > /dev/null 2>&1; then
+                echo "Healthy inside the container after $((i * 5))s (public URL answered ${code:-000}; check DNS and Caddy)"
+                healthy=true
+                break
+              fi
+              if [ "$code" = "503" ]; then
+                echo "  ${i}/48: container $status, still starting up (healthz 503)"
+              else
+                echo "  ${i}/48: container $status, healthz returned ${code:-000}"
+              fi
+              sleep 5
+            done
+
+            if [ "$healthy" != true ]; then
+              echo "ERROR: the site did not become healthy within 240s."
+              docker compose ps
+              docker compose logs --tail=200
+              exit 1
+            fi
+
+            # The public home page is behind basic auth, so check it from inside the container.
+            echo "=== Checking the home page from inside the container ==="
+            if ! docker compose exec -T "$SERVICE" curl -fsS -o /dev/null http://localhost:8080/; then
+              echo "ERROR: the home page did not return a success status."
+              docker compose ps
+              docker compose logs --tail=200
+              exit 1
+            fi
+            echo "Home page OK"
+
+            docker compose ps
+            echo "=== Deployed $(git rev-parse --short HEAD) at $(date -u '+%Y-%m-%d %H:%M:%S') UTC ==="

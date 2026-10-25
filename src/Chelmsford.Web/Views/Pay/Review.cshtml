@@ -1,0 +1,30 @@
+@model ReviewViewModel
+@{
+    var o = Model.Order;
+    var forLabel = o.SubjectKind == PaymentSubjectKind.Applicant ? $"{o.SubjectFirstName} (applicant)" : o.SubjectFirstName;
+    var paidBy = o.PayerType switch
+    {
+        PayerType.Student or PayerType.Applicant => $"{o.PayerName} ({(o.PayerType == PayerType.Student ? "student" : "applicant")})",
+        _ => $"{o.PayerName} ({(o.PayerRelationship ?? "on their behalf").ToLowerInvariant()})"
+    };
+}
+
+<div class="wrap pay-layout">
+    <partial name="~/Views/Shared/_PayHeader.cshtml" model="Model" />
+    <h1>Check and pay</h1>
+    <dl class="summary-list">
+        <div><dt>Payment</dt><dd>@o.ItemName</dd></div>
+        <div><dt>For</dt><dd>@forLabel<br><span class="muted summary-list__sub">@o.CourseTitle</span></dd></div>
+        <div><dt>Paid by</dt><dd>@paidBy</dd></div>
+        <div><dt>Reference</dt><dd>@o.Reference</dd></div>
+        <div class="summary-list__total"><dt>Total</dt><dd>@UkTime.Money(o.AmountPence)</dd></div>
+    </dl>
+    <p>You'll pay on our payment provider's secure page. You can use a debit or credit card, Apple Pay or Google Pay. Your card details never reach the college's systems.</p>
+    <form method="post" action="/pay/checkout/@Uri.EscapeDataString(o.Reference)">
+        @Html.AntiForgeryToken()
+        <button class="btn btn--block btn--large" type="submit">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+            Pay @UkTime.Money(o.AmountPence) securely
+        </button>
+    </form>
+</div>

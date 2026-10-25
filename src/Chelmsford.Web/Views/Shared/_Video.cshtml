@@ -1,0 +1,24 @@
+@model (string? EmbedUrl, Picture Poster, string Title)
+@* Click-to-load: nothing is fetched from the video site until the visitor chooses to play. *@
+<div class="video-frame">
+    @if (!string.IsNullOrEmpty(Model.EmbedUrl))
+    {
+        <button class="video-poster" type="button" data-video-embed="@Model.EmbedUrl" data-video-title="@Model.Title">
+            @Html.Picture(Model.Poster, "(min-width: 64rem) 640px, 100vw", "video-poster__img", alt: "")
+            <span class="video-poster__play"><span><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"></path></svg></span></span>
+            <span class="visually-hidden">Play video: @Model.Title. The video loads from an external site when you play it.</span>
+        </button>
+    }
+    else
+    {
+        @Html.Picture(Model.Poster, "(min-width: 64rem) 640px, 100vw", "video-poster__img", alt: SiteAssets.AltFor(Model.Poster.Slug ?? string.Empty))
+    }
+</div>
+@if (!string.IsNullOrEmpty(Model.EmbedUrl))
+{
+    <noscript><p class="video-caption"><a href="@Model.EmbedUrl.Replace("?autoplay=1&rel=0", string.Empty).Replace("&autoplay=1", string.Empty)">Watch the video</a> (opens the video site).</p></noscript>
+}
+else
+{
+    <p class="video-caption">Video: editors add a YouTube or Vimeo link in the CMS</p>
+}

@@ -1,0 +1,178 @@
+@model HomeViewModel
+@{
+    var popular = Model.Subjects.OrderByDescending(s => s.CourseCount).ThenBy(s => s.Subject).Take(6).OrderBy(s => s.Subject).ToList();
+}
+
+@* On a phone the first thing on the page is course search. From tablet width up the search sits
+   under the hero instead, as before. *@
+<form class="wrap mobile-search" action="@Model.CoursesUrl" method="get" role="search" aria-label="Course search">
+    <div class="search-form">
+        <div class="field">
+            <label class="field__label" for="top-q">Search for a course</label>
+            <span class="field__hint" id="top-q-hint">For example: hairdressing, plumbing or business</span>
+            <input class="input" id="top-q" name="q" type="search" aria-describedby="top-q-hint" autocomplete="off">
+        </div>
+        <button class="btn btn--large" type="submit">Search</button>
+    </div>
+</form>
+
+<section class="hero on-dark" aria-labelledby="hero-heading">
+    <div class="hero__grid">
+        @Html.Picture(Model.HeroPicture, "(min-width: 64rem) 50vw, 100vw", "hero__media", eager: true)
+        <div class="hero__card">
+            <span class="hero__ring" aria-hidden="true"></span>
+            @if (Model.Campaign is { } c)
+            {
+                @if (!string.IsNullOrEmpty(c.Label))
+                {
+                    <p class="tag tag--solid-green">@c.Label</p>
+                }
+                <h1 id="hero-heading">@c.Heading</h1>
+                @if (!string.IsNullOrEmpty(c.Text))
+                {
+                    <p>@c.Text</p>
+                }
+                <div class="hero__actions">
+                    @if (!string.IsNullOrEmpty(c.ButtonText))
+                    {
+                        <a class="btn btn--green" href="@TextHelpers.SafeUrl(c.ButtonUrl)">@c.ButtonText</a>
+                    }
+                    <a class="btn btn--ghost-light hero__secondary" href="@Model.EventsUrl">See all events</a>
+                </div>
+            }
+            else
+            {
+                <p class="tag tag--solid-green">Chelmsford College</p>
+                <h1 id="hero-heading">Learn by doing, in real workshops</h1>
+                <p>Courses for school leavers, adults and apprentices in the heart of Chelmsford.</p>
+                <div class="hero__actions">
+                    <a class="btn btn--green" href="@Model.CoursesUrl">Find a course</a>
+                    <a class="btn btn--ghost-light hero__secondary" href="@Model.EventsUrl">See all events</a>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="wrap search-card" aria-labelledby="search-heading">
+    <div class="search-card__box">
+        <div class="search-card__main">
+            <h2 id="search-heading">Find your course</h2>
+            @if (Model.CourseCount > 0)
+            {
+                <p class="muted">Search @Model.CourseCount courses for school leavers, adults and apprentices.</p>
+            }
+            <form class="search-form" action="@Model.CoursesUrl" method="get" role="search" aria-label="Course search">
+                <div class="field">
+                    <label class="field__label" for="home-q">What would you like to study?</label>
+                    <span class="field__hint" id="home-q-hint">For example: hairdressing, plumbing or business</span>
+                    <input class="input" id="home-q" name="q" type="search" aria-describedby="home-q-hint" autocomplete="off">
+                </div>
+                <button class="btn btn--large" type="submit">Search courses</button>
+            </form>
+        </div>
+        @if (popular.Count > 0)
+        {
+            <div class="search-card__chips">
+                <h2 id="popular-heading" class="search-card__chips-heading">Browse by subject</h2>
+                <ul class="chip-list" aria-labelledby="popular-heading">
+                    @foreach (var s in popular)
+                    {
+                        <li><a class="chip" href="@(Model.CoursesUrl)?subject=@Uri.EscapeDataString(s.Subject)">@s.Subject</a></li>
+                    }
+                    <li><a class="chip" href="@Model.CoursesUrl">All subjects</a></li>
+                </ul>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="wrap section" aria-labelledby="routes-heading">
+    <h2 id="routes-heading">Find the right route for you</h2>
+    <div class="route-grid">
+        @foreach (var r in Model.Routes)
+        {
+            <a class="route-card @(r.Green ? "route-card--green" : null)" href="@r.Url">
+                <span class="route-card__title">@r.Title</span>
+                <span class="route-card__text">@r.Description</span>
+            </a>
+        }
+    </div>
+</section>
+
+@if (Model.SubjectCards.Count > 0)
+{
+    <section class="wrap section" aria-labelledby="subjects-heading">
+        <p class="eyebrow">Popular this year</p>
+        <h2 id="subjects-heading">Learn by doing, in real workshops</h2>
+        <div class="photo-grid">
+            @foreach (var card in Model.SubjectCards)
+            {
+                <a class="photo-card" href="@card.Url">
+                    @Html.Picture(card.Picture, "(min-width: 64rem) 400px, (min-width: 48rem) 50vw, 100vw", "photo-card__img", alt: "")
+                    <span class="photo-card__body">
+                        <span class="photo-card__title">@card.Title</span>
+                        <span class="photo-card__text">@card.Description</span>
+                    </span>
+                </a>
+            }
+        </div>
+    </section>
+}
+
+<section class="video-block on-dark" aria-labelledby="video-heading">
+    <div class="wrap video-block__grid">
+        <div>
+            <h2 id="video-heading">@Model.VideoHeading</h2>
+            @if (!string.IsNullOrEmpty(Model.VideoText))
+            {
+                <p>@Model.VideoText</p>
+            }
+            <a class="btn btn--green" href="@Model.EventsUrl">Visit us in person</a>
+        </div>
+        <div>
+            <partial name="~/Views/Shared/_Video.cshtml" model="(Model.VideoEmbedUrl, Model.VideoPoster, Model.VideoHeading)" />
+        </div>
+    </div>
+</section>
+
+<div class="wrap home-bottom">
+    <section class="section" aria-labelledby="events-heading">
+        <div class="section-head">
+            <h2 id="events-heading">Upcoming events</h2>
+            <a href="@Model.EventsUrl">All events</a>
+        </div>
+        @if (Model.Events.Count == 0)
+        {
+            <p>New events will be added soon.</p>
+        }
+        else
+        {
+            <ul class="event-list">
+                @foreach (var e in Model.Events)
+                {
+                    <li>
+                        <a class="event-row" href="@e.Url">
+                            <partial name="~/Views/Shared/_DateBadge.cshtml" model="e" />
+                            <span>
+                                <span class="event-row__title">@e.Name</span>
+                                <span class="event-row__meta">@UkTime.DayAndDate(e.StartsAt), @UkTime.TimeRange(e.StartsAt, e.EndsAt)@(e.Venue is null ? null : ", " + e.Venue)</span>
+                            </span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section class="section" aria-labelledby="apply-heading">
+        <div class="apply-cta">
+            <h2 id="apply-heading">Ready to apply?</h2>
+            <p>It takes about 10 minutes. We'll help you every step of the way.</p>
+            <div class="apply-cta__actions">
+                <a class="btn" href="@Model.CoursesUrl">Find a course and apply</a>
+                <a class="btn btn--ghost" href="/contact-us/">Talk to an adviser</a>
+            </div>
+        </div>
+    </section>
+</div>

@@ -1,0 +1,88 @@
+@model EventListingViewModel
+@{
+    IReadOnlyList<(string Text, string? Url)> crumbs = [("Home", "/"), ("Events", null)];
+    string Link(string? type, string? month)
+    {
+        var parts = new List<string>();
+        if (type is not null) parts.Add("type=" + Uri.EscapeDataString(type));
+        if (month is not null) parts.Add("month=" + Uri.EscapeDataString(month));
+        return Model.ListingUrl + (parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty);
+    }
+    var count = Model.Events.Count;
+}
+
+<div class="wrap">
+    <partial name="~/Views/Shared/_Breadcrumb.cshtml" model="crumbs" />
+    <h1>Events</h1>
+    @if (!string.IsNullOrEmpty(Model.Intro))
+    {
+        <p class="lead">@Model.Intro</p>
+    }
+
+    <nav class="type-filter" aria-labelledby="type-heading">
+        <h2 id="type-heading">Event type</h2>
+        <ul class="chip-list">
+            <li><a class="chip" href="@Link(null, Model.Month)" aria-current="@(Model.Type is null ? "true" : null)">All</a></li>
+            @foreach (var t in Model.Types)
+            {
+                <li><a class="chip" href="@Link(t, Model.Month)" aria-current="@(Model.Type == t ? "true" : null)">@t</a></li>
+            }
+        </ul>
+    </nav>
+
+    <form class="month-form" action="@Model.ListingUrl" method="get">
+        @if (Model.Type is not null)
+        {
+            <input type="hidden" name="type" value="@Model.Type">
+        }
+        <div class="field">
+            <label class="field__label" for="month">Month</label>
+            <select class="select" id="month" name="month">
+                <option value="">All upcoming dates</option>
+                @foreach (var (key, label) in Model.Months)
+                {
+                    <option value="@key" selected="@(Model.Month == key)">@label</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn--ghost" type="submit">Show events</button>
+    </form>
+
+    <p class="results-count" role="status">@(count == 1 ? "1 event" : $"{count} events")@(Model.Type is null ? null : $": {Model.Type}")@(Model.Month is null ? null : $" in {Model.Months.First(m => m.Key == Model.Month).Label}")</p>
+
+    @if (count == 0)
+    {
+        <div class="empty-state">
+            <h2>No events match</h2>
+            <p>Try another type or month.</p>
+            <a class="btn btn--ghost" href="@Model.ListingUrl">Show all events</a>
+        </div>
+    }
+    else
+    {
+        <ul class="event-cards section section--tight">
+            @foreach (var e in Model.Events)
+            {
+                <li class="event-card">
+                    @* The CMS image when there is one; otherwise a subject photo for the bigger events, as in the design. *@
+                    @{
+                        var picture = e.Image ?? (e.Type is Chelmsford.Core.Events.EventTypes.OpenEvents or Chelmsford.Core.Events.EventTypes.TasterDays or Chelmsford.Core.Events.EventTypes.Showcases
+                            ? Picture.FromSlug(SiteAssets.SlugForEventType(e.Type, e.Name)) : null);
+                    }
+                    @if (picture is not null)
+                    {
+                        @Html.Picture(picture, "(min-width: 64rem) 400px, (min-width: 48rem) 50vw, 100vw", "event-card__img", alt: "")
+                    }
+                    <div class="event-card__body">
+                        <partial name="~/Views/Shared/_DateBadge.cshtml" model="e" />
+                        <div>
+                            <p class="event-card__type">@e.Type</p>
+                            <h2><a href="@e.Url">@e.Name</a></h2>
+                            <p class="event-card__meta">@e.When@(e.Venue is null ? null : ". ")@e.Venue</p>
+                        </div>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>

@@ -1,0 +1,16 @@
+@model PayStepViewModel
+@if (!string.IsNullOrEmpty(Model.BackUrl))
+{
+    <a class="back-link" href="@Model.BackUrl">Back</a>
+}
+@if (Model.Step > 0)
+{
+    <div class="progress">
+        <p class="progress__label">Step @Model.Step of 3</p>
+        <div class="progress__track" aria-hidden="true"><div class="progress__bar progress__bar--@Model.Step"></div></div>
+    </div>
+}
+@if (Model.Errors.Count > 0)
+{
+    <partial name="~/Views/Shared/_ErrorSummary.cshtml" model="(IReadOnlyDictionary<string, string>)Model.Errors" />
+}

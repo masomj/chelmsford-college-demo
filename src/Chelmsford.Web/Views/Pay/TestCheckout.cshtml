@@ -1,0 +1,30 @@
+@model TestCheckoutViewModel
+@{
+    Layout = null;
+    var o = Model.Order;
+}
+<!doctype html>
+<html lang="en-GB">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Test checkout (no real payment)</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+</head>
+<body class="test-checkout-page">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <main id="main-content" class="test-checkout" tabindex="-1">
+        <div class="test-banner" role="note">Test checkout. No real payment is taken. On the live site this step is Stripe's secure hosted page.</div>
+        <h1>Pay Chelmsford College</h1>
+        <p>@o.ItemName</p>
+        <p class="test-checkout__amount">@UkTime.Money(o.AmountPence)</p>
+        <p class="muted">Reference @o.Reference</p>
+        <form method="post" action="/pay/test-checkout/@Uri.EscapeDataString(o.Reference)">
+            @Html.AntiForgeryToken()
+            <button class="btn btn--block btn--large" type="submit">Pay @UkTime.Money(o.AmountPence) (test)</button>
+        </form>
+        <p class="mt-m"><a href="/pay/review/@Uri.EscapeDataString(o.Reference)">Cancel and go back</a></p>
+    </main>
+</body>
+</html>

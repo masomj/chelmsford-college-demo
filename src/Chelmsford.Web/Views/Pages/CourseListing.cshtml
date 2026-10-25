@@ -1,0 +1,121 @@
+@model CourseListingViewModel
+@{
+    var r = Model.Result;
+    var q = Model.Query;
+    var count = r.Courses.Count;
+    var countLabel = count == 1 ? "1 course found" : $"{count} courses found";
+    var active = q.ActiveFilterCount;
+    var anyFilter = active > 0 || !string.IsNullOrEmpty(q.Text);
+    IReadOnlyList<(string Text, string? Url)> crumbs = [("Home", "/"), ("Courses", null)];
+
+    // Open on mobile when nothing is selected yet is noisy, so start collapsed unless there are no results.
+    var startOpen = count == 0 && active > 0;
+
+    IEnumerable<(string Name, string Legend, IReadOnlyList<FacetOption> Options)> groups =
+    [
+        ("subject", "Subject", r.Subjects),
+        ("level", "Level", r.Levels),
+        ("mode", "Study mode", r.Modes),
+        ("campus", "Campus", r.Campuses),
+        ("funding", "Funding", r.Funding)
+    ];
+}
+
+<div class="wrap">
+    <partial name="~/Views/Shared/_Breadcrumb.cshtml" model="crumbs" />
+    <h1>Find a course</h1>
+    @if (!string.IsNullOrEmpty(Model.Intro))
+    {
+        <p class="lead prose">@Model.Intro</p>
+    }
+
+    <form action="@Model.ListingUrl" method="get" id="course-search">
+        <div class="search-form" role="search" aria-label="Course search">
+            <div class="field">
+                <label class="field__label" for="q">Search courses</label>
+                <span class="field__hint" id="q-hint">Try a subject or job, such as chef or fashion</span>
+                <input class="input" id="q" name="q" type="search" value="@q.Text" aria-describedby="q-hint" autocomplete="off">
+            </div>
+            <button class="btn btn--large" type="submit">Search</button>
+        </div>
+
+        <div class="results-bar">
+            <p class="results-count" role="status">@countLabel@(string.IsNullOrEmpty(q.Text) ? null : $" for “{q.Text}”")</p>
+            <button class="btn btn--ghost filters-toggle" type="button" data-filters-toggle data-start-open="@(startOpen ? "true" : "false")" aria-controls="filters" aria-expanded="true" hidden>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>
+                Filters@(active > 0 ? $" ({active} selected)" : null)
+            </button>
+        </div>
+
+        <div class="search-layout">
+            <div class="filters" id="filters">
+                <h2 class="filters__heading">Filter courses</h2>
+                @foreach (var g in groups)
+                {
+                    if (g.Options.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    <fieldset class="filter-group">
+                        <legend>@g.Legend</legend>
+                        @for (var i = 0; i < g.Options.Count; i++)
+                        {
+                            var o = g.Options[i];
+                            var id = $"f-{g.Name}-{i}";
+                            <label class="check filter-option @(o.Count == 0 && !o.Selected ? "filter-option--empty" : null)" for="@id">
+                                <input type="checkbox" id="@id" name="@g.Name" value="@o.Value" checked="@o.Selected">
+                                <span>@o.Value</span>
+                                <span class="filter-option__count"><span class="visually-hidden">(</span>@o.Count<span class="visually-hidden"> @(o.Count == 1 ? "course" : "courses"))</span></span>
+                            </label>
+                        }
+                    </fieldset>
+                }
+                @if (r.Campuses.Count > 0)
+                {
+                    <p class="field__hint">Campus is a demo mapping by subject, because the demo course data has no campus field.</p>
+                }
+                <div class="filters__actions">
+                    <button class="btn" type="submit">Apply filters</button>
+                    @if (anyFilter)
+                    {
+                        <a class="btn btn--ghost" href="@Model.ListingUrl">Clear filters</a>
+                    }
+                </div>
+            </div>
+
+            <div>
+                @if (count == 0)
+                {
+                    <div class="empty-state">
+                        <h2>No courses match your search</h2>
+                        <p>Try fewer filters, check your spelling, or search for a broader subject.</p>
+                        <a class="btn btn--ghost" href="@Model.ListingUrl">Clear filters</a>
+                    </div>
+                }
+                else
+                {
+                    <ul class="result-list">
+                        @foreach (var card in Model.Cards)
+                        {
+                            var c = card.Course;
+                            <li class="result-card">
+                                <ul class="tag-list" aria-label="Course details">
+                                    <li class="tag tag--blue">@c.LevelShort</li>
+                                    <li class="tag tag--green">@c.Subject</li>
+                                </ul>
+                                <h2><a href="@card.Url">@c.Heading</a></h2>
+                                <dl class="facts">
+                                    <div><dt>Duration</dt><dd>@(c.Duration ?? "Contact us")</dd></div>
+                                    <div><dt>Starts</dt><dd>@c.StartLabel</dd></div>
+                                    <div><dt>Study mode</dt><dd>@c.StudyMode</dd></div>
+                                    <div><dt>Campus</dt><dd>@c.Campus</dd></div>
+                                </dl>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </form>
+</div>

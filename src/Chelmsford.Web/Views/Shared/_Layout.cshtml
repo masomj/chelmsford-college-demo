@@ -1,0 +1,194 @@
+@inject SiteAssets Assets
+@{
+    var page = Model as PageViewModel;
+    var title = page?.Title ?? ViewData["Title"] as string ?? "Chelmsford College";
+    var description = page?.MetaDescription;
+    var focused = page?.Focused ?? false;
+    var nav = new (string Section, string Text, string Url)[]
+    {
+        ("courses", "Courses", "/courses/"),
+        ("adults", "Adult learners", "/adult-learners/"),
+        ("apprenticeships", "Apprenticeships", "/apprenticeships/"),
+        ("employers", "Employers", "/employers/"),
+        ("events", "Events", "/events/"),
+        ("parents", "Parents and carers", "/parents-and-carers/")
+    };
+}
+<!doctype html>
+<html lang="en-GB">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@title</title>
+    @if (!string.IsNullOrWhiteSpace(description))
+    {
+        <meta name="description" content="@description">
+    }
+    @if (page?.NoIndex == true)
+    {
+        <meta name="robots" content="noindex">
+    }
+    <meta name="theme-color" content="#0B2540">
+    <script>document.documentElement.classList.add('js');</script>
+    <link rel="preload" href="~/fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+    <link rel="icon" href="/favicon.ico">
+    @if (!string.IsNullOrWhiteSpace(page?.JsonLd))
+    {
+        @* Written out as raw HTML: the script tag helper would encode the "+" in the type. The JSON escapes "<", so it can't close the tag early. *@
+        @Html.Raw("<script type=\"application/ld+json\">" + page.JsonLd + "</script>")
+    }
+</head>
+<body class="@(page?.HasStickyBar == true ? "has-sticky-bar" : null)">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    @* A normal block at the top of the page, straight after the skip link, so it never covers anything
+       that has keyboard focus. Shown by site.js when no choice has been made, or from the footer. *@
+    <section class="cookie-banner" id="cookie-banner" aria-labelledby="cookie-heading" hidden>
+        <div class="wrap cookie-banner__inner">
+            <div>
+                <h2 id="cookie-heading" class="cookie-banner__heading" tabindex="-1">Cookies on this website</h2>
+                <p>We use essential cookies to make the site work. We'd also like to use analytics cookies to understand how people use the site, so we can improve it. <a href="/privacy-and-cookies/">Read about our cookies</a>.</p>
+            </div>
+            <div class="cookie-banner__actions">
+                <button class="btn" type="button" data-cookie-choice="accepted">Accept analytics cookies</button>
+                <button class="btn btn--ghost" type="button" data-cookie-choice="rejected">Reject analytics cookies</button>
+            </div>
+            <p class="cookie-banner__status" role="status" data-cookie-status></p>
+        </div>
+    </section>
+
+    @if (!focused)
+    {
+        <div class="utility-bar">
+            <div class="wrap utility-bar__inner">
+                <nav aria-label="Quick links">
+                    <ul class="utility-bar__list">
+                        <li><a href="/make-a-payment/" @Html.AriaCurrent("pay", "/make-a-payment/")>Make a payment</a></li>
+                        <li><a href="/current-students/">Current students</a></li>
+                        <li><a href="/jobs/">Jobs</a></li>
+                        <li><a href="/contact-us/">Contact us</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    }
+
+    <header class="site-header">
+        <div class="wrap site-header__inner">
+            <a class="site-logo" href="/">
+                @if (Assets.HasColourLogo)
+                {
+                    <img src="/college-assets/logo-colour.png" alt="Chelmsford College home" width="180" height="44">
+                }
+                else
+                {
+                    <span class="wordmark">Chelmsford College<span class="visually-hidden"> home</span></span>
+                }
+            </a>
+
+            @if (focused)
+            {
+                <p class="secure-tag">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+                    Secure payments
+                </p>
+            }
+            else
+            {
+                <nav class="main-nav" aria-label="Main">
+                    <ul class="main-nav__list">
+                        @foreach (var item in nav)
+                        {
+                            <li><a class="main-nav__link" href="@item.Url" @Html.AriaCurrent(item.Section, item.Url)>@item.Text</a></li>
+                        }
+                    </ul>
+                </nav>
+                <div class="site-header__actions">
+                    <a class="btn site-header__apply" href="/apply/">Apply now</a>
+                    <a class="icon-btn site-header__search" href="/courses/#q">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                        <span class="visually-hidden">Search courses</span>
+                    </a>
+                    @* Without JavaScript the link jumps to the menu; with it, the button opens and closes it. *@
+                    <a class="icon-btn menu-toggle menu-toggle--nojs" href="#mobile-nav">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+                        <span class="visually-hidden">Menu</span>
+                    </a>
+                    <button class="icon-btn menu-toggle" type="button" data-menu-toggle aria-controls="mobile-nav" aria-expanded="false" hidden>
+                        <svg class="menu-toggle__open" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+                        <svg class="menu-toggle__close" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+                        <span class="visually-hidden">Menu</span>
+                    </button>
+                </div>
+            }
+        </div>
+
+        @if (!focused)
+        {
+            <nav id="mobile-nav" class="mobile-nav" aria-label="Main (mobile)">
+                <ul class="mobile-nav__list">
+                    @foreach (var item in nav)
+                    {
+                        <li><a href="@item.Url" @Html.AriaCurrent(item.Section, item.Url)>@item.Text<span aria-hidden="true">&rsaquo;</span></a></li>
+                    }
+                    <li><a href="/make-a-payment/" @Html.AriaCurrent("pay", "/make-a-payment/")>Make a payment<span aria-hidden="true">&rsaquo;</span></a></li>
+                </ul>
+                <div class="mobile-nav__actions">
+                    <a class="btn" href="/apply/">Apply now</a>
+                    <a class="btn btn--ghost" href="/events/">Book an event</a>
+                </div>
+            </nav>
+        }
+    </header>
+
+    <main id="main-content" tabindex="-1">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="wrap site-footer__grid">
+            <div>
+                @if (Assets.HasWhiteLogo)
+                {
+                    <img class="site-footer__logo" src="/college-assets/logo-white.png" alt="Chelmsford College" width="160" height="40" loading="lazy">
+                }
+                else
+                {
+                    <p class="wordmark wordmark--white">Chelmsford College</p>
+                }
+                <p>Moulsham Street, Chelmsford, Essex CM2 0JQ</p>
+            </div>
+            <nav aria-label="Footer: study">
+                <h2 class="site-footer__heading">Study with us</h2>
+                <ul class="site-footer__list">
+                    <li><a href="/courses/">Courses</a></li>
+                    <li><a href="/adult-learners/">Adult learners</a></li>
+                    <li><a href="/apprenticeships/">Apprenticeships</a></li>
+                    <li><a href="/events/">Events</a></li>
+                    <li><a href="/make-a-payment/">Make a payment</a></li>
+                </ul>
+            </nav>
+            <nav aria-label="Footer: about this site">
+                <h2 class="site-footer__heading">About this site</h2>
+                <ul class="site-footer__list">
+                    <li><a href="/accessibility-statement/">Accessibility statement</a></li>
+                    <li><a href="/privacy-and-cookies/">Privacy and cookies</a></li>
+                    @* Opens the cookie message again, so a choice can be changed as easily as it was made.
+                       Without JavaScript it goes to the cookie information instead. *@
+                    <li><a href="/privacy-and-cookies/#cookie-settings" data-cookie-reopen>Cookie settings</a></li>
+                    <li><a href="/how-the-data-gets-here">How the course data gets here</a></li>
+                    <li><a href="/jobs/">Jobs</a></li>
+                    <li><a href="/contact-us/">Contact us</a></li>
+                    <li><a href="/umbraco">CMS sign-in</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="demo-notice">
+            <p class="wrap">Demo site prepared by Vanguard Digital Solutions for the Chelmsford College website tender. The students, payments and bookings in it are not real.</p>
+        </div>
+    </footer>
+
+    <script src="~/js/site.js" asp-append-version="true" defer></script>
+</body>
+</html>

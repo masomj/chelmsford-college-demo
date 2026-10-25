@@ -1,0 +1,73 @@
+@model FindStudentViewModel
+@{
+    var f = Model.Form;
+    string? Err(string key) => Model.Errors.TryGetValue(key, out var m) ? m : null;
+    string? Described(string? hint, string key) =>
+        string.Join(" ", new[] { hint, Err(key) is null ? null : key + "-error" }.Where(s => s is not null)) is { Length: > 0 } d ? d : null;
+}
+
+<div class="wrap pay-layout">
+    <partial name="~/Views/Shared/_PayHeader.cshtml" model="Model" />
+    <h1>Find the student</h1>
+    <p class="lead">We'll only show the student's first name, their course and the payments due.</p>
+
+    <form method="post" action="/pay/find-student" novalidate>
+        @Html.AntiForgeryToken()
+
+        <div class="field @(Err("StudentId") is null ? null : "field--error")">
+            <label class="field__label" for="StudentId">Student ID number</label>
+            <span class="field__hint" id="StudentId-hint">8 digits, on their college ID card or acceptance letter</span>
+            @if (Err("StudentId") is { } e1) { <span class="field__error" id="StudentId-error">@e1</span> }
+            <input class="input input--id @(Err("StudentId") is null ? null : "input--error")" id="StudentId" name="StudentId" inputmode="numeric" autocomplete="off" spellcheck="false" value="@f.StudentId"
+                   aria-describedby="@Described("StudentId-hint", "StudentId")" aria-invalid="@(Err("StudentId") is null ? null : "true")">
+        </div>
+
+        <fieldset class="field @(Err("Day") is null ? null : "field--error")" role="group" aria-describedby="@Described("dob-hint", "Day")">
+            <legend>Student's date of birth</legend>
+            <span class="field__hint" id="dob-hint">For example, 27 3 2009</span>
+            @if (Err("Day") is { } e2) { <span class="field__error" id="Day-error">@e2</span> }
+            <div class="date-input">
+                <div>
+                    <label class="field__label" for="Day">Day</label>
+                    <input class="input input--short @(Err("Day") is null ? null : "input--error")" id="Day" name="Day" inputmode="numeric" maxlength="2" autocomplete="off" value="@f.Day">
+                </div>
+                <div>
+                    <label class="field__label" for="Month">Month</label>
+                    <input class="input input--short @(Err("Day") is null ? null : "input--error")" id="Month" name="Month" inputmode="numeric" maxlength="2" autocomplete="off" value="@f.Month">
+                </div>
+                <div>
+                    <label class="field__label" for="Year">Year</label>
+                    <input class="input input--year @(Err("Day") is null ? null : "input--error")" id="Year" name="Year" inputmode="numeric" maxlength="4" autocomplete="off" value="@f.Year">
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="field @(Err("PayerName") is null ? null : "field--error")">
+            <label class="field__label" for="PayerName">Your full name</label>
+            @if (Err("PayerName") is { } e3) { <span class="field__error" id="PayerName-error">@e3</span> }
+            <input class="input" id="PayerName" name="PayerName" autocomplete="name" value="@f.PayerName" aria-describedby="@Described(null, "PayerName")" aria-invalid="@(Err("PayerName") is null ? null : "true")">
+        </div>
+
+        <div class="field @(Err("PayerEmail") is null ? null : "field--error")">
+            <label class="field__label" for="PayerEmail">Your email address</label>
+            <span class="field__hint" id="PayerEmail-hint">We'll send your receipt here</span>
+            @if (Err("PayerEmail") is { } e4) { <span class="field__error" id="PayerEmail-error">@e4</span> }
+            <input class="input" id="PayerEmail" name="PayerEmail" type="email" autocomplete="email" spellcheck="false" value="@f.PayerEmail" aria-describedby="@Described("PayerEmail-hint", "PayerEmail")" aria-invalid="@(Err("PayerEmail") is null ? null : "true")">
+        </div>
+
+        <div class="field @(Err("Relationship") is null ? null : "field--error")">
+            <label class="field__label" for="Relationship">Your relationship to the student</label>
+            @if (Err("Relationship") is { } e5) { <span class="field__error" id="Relationship-error">@e5</span> }
+            <select class="select" id="Relationship" name="Relationship" aria-describedby="@Described(null, "Relationship")">
+                <option value="">Choose one</option>
+                @foreach (var r in FindStudentViewModel.Relationships)
+                {
+                    <option value="@r" selected="@(f.Relationship == r)">@r</option>
+                }
+            </select>
+        </div>
+
+        <button class="btn btn--block" type="submit">Continue</button>
+    </form>
+    <p class="muted mt-m">To protect students' details, we limit how many times you can try. Demo student: ID 21004567, born 14 5 2009.</p>
+</div>

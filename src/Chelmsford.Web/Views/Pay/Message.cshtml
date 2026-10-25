@@ -1,0 +1,14 @@
+@model PayMessageViewModel
+
+<div class="wrap pay-layout">
+    <h1>@Model.Heading</h1>
+    @if (!string.IsNullOrEmpty(Model.Body))
+    {
+        <p class="lead">@Model.Body</p>
+    }
+    @if (!string.IsNullOrEmpty(Model.LinkUrl))
+    {
+        <a class="btn" href="@Model.LinkUrl">@Model.LinkText</a>
+    }
+    <p class="mt-m"><a href="/make-a-payment/">Back to payments</a></p>
+</div>

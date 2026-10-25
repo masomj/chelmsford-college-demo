@@ -1,0 +1,63 @@
+@model CompleteViewModel
+@{
+    var o = Model.Order;
+    var paid = o.Status == OrderStatus.Paid;
+    var finished = paid || Model.Duplicate || Model.Refunded;
+}
+
+<div class="wrap pay-layout">
+    @if (paid)
+    {
+        <div role="status">
+            <div class="tick" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+            <h1>Payment received</h1>
+            <p>Thank you. We'll email a receipt to @Model.ReceiptTo.</p>
+        </div>
+    }
+    else if (Model.Duplicate)
+    {
+        <div role="status">
+            <h1>This item had already been paid</h1>
+            <p class="lead">This item had already been paid, so we'll refund this payment. You don't need to do anything.</p>
+        </div>
+    }
+    else if (Model.Refunded)
+    {
+        <div role="status">
+            <h1>This payment has been refunded</h1>
+            <p class="lead">The money is on its way back to the card that was used. You don't need to do anything.</p>
+        </div>
+    }
+    else
+    {
+        <partial name="~/Views/Shared/_PayHeader.cshtml" model="Model" />
+        <div role="status">
+            <h1>We're confirming your payment</h1>
+            <p>Your payment provider hasn't told us the payment is complete yet. This usually takes a few seconds. Please don't pay again.</p>
+        </div>
+    }
+
+    <dl class="receipt">
+        <div><dt>Reference</dt><dd>@o.Reference</dd></div>
+        <div><dt>Payment</dt><dd>@o.ItemName</dd></div>
+        @if (finished)
+        {
+            <div><dt>For</dt><dd>@o.SubjectFirstName</dd></div>
+        }
+        <div><dt>Amount</dt><dd>@UkTime.Money(o.AmountPence)</dd></div>
+        @if (paid && o.PaidUtc is { } at)
+        {
+            <div><dt>Paid</dt><dd>@UkTime.Date(UkTime.FromUtc(at)), @UkTime.Time(UkTime.FromUtc(at))</dd></div>
+        }
+    </dl>
+
+    @if (finished)
+    {
+        <a class="btn btn--ghost btn--block" href="/make-a-payment/">Make another payment</a>
+    }
+    else
+    {
+        <a class="btn btn--block" href="/pay/complete/@Uri.EscapeDataString(o.Reference)">Check again</a>
+        <p class="mt-m">If you left the payment page without paying, <a href="/pay/review/@Uri.EscapeDataString(o.Reference)">go back to your payment</a>.</p>
+    }
+</div>

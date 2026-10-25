@@ -1,0 +1,43 @@
+# Chelmsford College website demo.
+#
+# Add this block to the Caddyfile your Caddy container uses, then validate and
+# reload Caddy. If that Caddyfile is deployed from another repository, add the
+# block there too, or that project's next deploy will remove it.
+# See deploy/DEPLOY.md, "Add the site to Caddy".
+#
+# The upstream is the container name on the shared Docker network.
+# Caddy obtains the TLS certificate automatically once DNS points here.
+
+chelmsford.vanguarddigitalsolutions.co.uk {
+    encode zstd gzip
+
+    # Never trust a client-supplied X-Remote-User: only Caddy may set it (below).
+    request_header -X-Remote-User
+
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(self)"
+        # Demo site: keep it out of search engines.
+        X-Robots-Tag "noindex, nofollow"
+        -Server
+    }
+
+    # The whole demo is password protected, except: Stripe's webhook (verified
+    # by its signature), the health check used by the deploy workflow, and
+    # /reports/* (the app protects the access report with its own basic auth).
+    @protected not path /pay/webhook/stripe /healthz /reports/*
+    basic_auth @protected {
+        # Username, then a bcrypt hash from:
+        #   docker compose exec caddy caddy hash-password --plaintext 'the-password'
+        # Replace the placeholder below. Never put the plain password here.
+        panel REPLACE_WITH_BCRYPT_HASH_FROM_CADDY_HASH_PASSWORD
+    }
+
+    reverse_proxy chelmsford-demo:8080 {
+        # Tell the app who passed basic auth (empty on the unprotected paths).
+        header_up X-Remote-User {http.auth.user.id}
+    }
+}

@@ -1,0 +1,47 @@
+@model PaymentsLandingViewModel
+@{
+    IReadOnlyList<(string Text, string? Url)> crumbs = [("Home", "/"), ("Make a payment", null)];
+}
+
+<div class="wrap pay-layout">
+    <partial name="~/Views/Shared/_Breadcrumb.cshtml" model="crumbs" />
+    <h1>Make a payment</h1>
+    <p class="lead">@(Model.Intro ?? "Pay course deposits, materials fees and trips online. Parents and carers can pay on a student's behalf.")</p>
+
+    <h2 id="routes-heading">How would you like to pay?</h2>
+    <ul class="route-list" aria-labelledby="routes-heading">
+        <li>
+            <a class="pay-route" href="/pay/sign-in">
+                <span class="pay-route__icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" focusable="false"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg></span>
+                <span><span class="pay-route__title">I'm a student</span><span class="pay-route__text">Sign in with your college account</span></span>
+            </a>
+        </li>
+        <li>
+            <a class="pay-route" href="/pay/link">
+                <span class="pay-route__icon pay-route__icon--green" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" focusable="false"><path d="M4 6h16v12H4z"></path><path d="m4 7 8 6 8-6"></path></svg></span>
+                <span><span class="pay-route__title">I have a payment link</span><span class="pay-route__text">From an email we sent you or a student</span></span>
+            </a>
+        </li>
+        <li>
+            <a class="pay-route" href="/pay/find-student">
+                <span class="pay-route__icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" focusable="false"><circle cx="9" cy="8" r="3.5"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M3 20c1-3.5 3.5-5 6-5s5 1.5 6 5M15 15c2.5 0 4.5 1.5 5.5 4"></path></svg></span>
+                <span><span class="pay-route__title">I'm paying for a student</span><span class="pay-route__text">Parents, carers and others. No account needed</span></span>
+            </a>
+        </li>
+    </ul>
+
+    <section class="section" aria-labelledby="what-heading">
+        <h2 id="what-heading">What you can pay for</h2>
+        <ul>
+            <li><strong>Course deposits</strong> to secure your place before you enrol</li>
+            <li><strong>Materials fees</strong> for kit, equipment and materials on your course</li>
+            <li><strong>Trips and visits</strong>, including places on trips with limited numbers</li>
+            <li><strong>One-off payments</strong> the college has asked you to make</li>
+        </ul>
+    </section>
+
+    <div class="notice notice--info">
+        <h2>Your card details are safe</h2>
+        <p>You pay on our payment provider's secure page, using a debit or credit card, Apple Pay or Google Pay. Your card details never reach the college's systems.</p>
+    </div>
+</div>

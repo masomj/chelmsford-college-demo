@@ -1,0 +1,103 @@
+@model AccessReportViewModel
+@{
+    string KindLabel(string kind) => kind switch
+    {
+        "cms-login" => "Signed in",
+        "cms-login-failed" => "Failed sign-in",
+        "cms-logout" => "Signed out",
+        _ => "Page view"
+    };
+}
+
+<div class="wrap report-page">
+    <h1>Who looked at the demo</h1>
+    <p class="lead">
+        Times are UK time. Only the first three parts of an IP address are kept, and entries are deleted after 90 days.
+    </p>
+    <p><a class="btn" href="/reports/access.csv" download>Download the latest 500 entries (CSV)</a></p>
+
+    <h2>Page views per person, last @Model.Days days</h2>
+    @if (Model.Summary.Count == 0)
+    {
+        <p>No page views have been recorded yet.</p>
+    }
+    else
+    {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Page views per person per day. Scroll sideways to see all of it.">
+            <table class="report-table">
+                <caption class="visually-hidden">Page views per person per day</caption>
+                <thead>
+                    <tr><th scope="col">Day</th><th scope="col">Who</th><th scope="col">Page views</th><th scope="col">First seen</th><th scope="col">Last seen</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Summary)
+                    {
+                        <tr>
+                            <td>@row.Day.ToString("d MMM yyyy", UkTime.Culture)</td>
+                            <td>@row.UserName</td>
+                            <td>@row.PageViews</td>
+                            <td>@UkTime.Time(UkTime.FromUtc(row.FirstSeenUtc))</td>
+                            <td>@UkTime.Time(UkTime.FromUtc(row.LastSeenUtc))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <h2>Recent CMS sign-ins</h2>
+    @if (Model.CmsEvents.Count == 0)
+    {
+        <p>Nobody has signed in to the CMS yet.</p>
+    }
+    else
+    {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Recent CMS sign-ins. Scroll sideways to see all of it.">
+            <table class="report-table">
+                <caption class="visually-hidden">Recent CMS sign-ins</caption>
+                <thead>
+                    <tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Who</th><th scope="col">IP (shortened)</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.CmsEvents)
+                    {
+                        <tr>
+                            <td>@UkTime.ShortDateTime(row.OccurredUtc)</td>
+                            <td>@KindLabel(row.Kind)</td>
+                            <td>@(row.UserName ?? "Unknown")</td>
+                            <td>@(row.IpPrefix ?? "Unknown")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <h2>Latest @Model.PageViews.Count page views</h2>
+    @if (Model.PageViews.Count == 0)
+    {
+        <p>No page views have been recorded yet.</p>
+    }
+    else
+    {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Latest page views. Scroll sideways to see all of it.">
+            <table class="report-table">
+                <caption class="visually-hidden">Latest page views</caption>
+                <thead>
+                    <tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Page</th><th scope="col">IP (shortened)</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.PageViews)
+                    {
+                        <tr>
+                            <td>@UkTime.ShortDateTime(row.OccurredUtc)</td>
+                            <td>@row.UserName</td>
+                            <td class="report-table__path">@row.Path</td>
+                            <td>@(row.IpPrefix ?? "Unknown")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

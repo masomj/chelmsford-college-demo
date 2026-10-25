@@ -1,0 +1,17 @@
+@model SimplePageViewModel
+
+<div class="wrap page-bottom">
+    <partial name="~/Views/Shared/_Breadcrumb.cshtml" model="Model.Breadcrumb" />
+    <div class="prose">
+        <h1>@Model.Heading</h1>
+        @if (!string.IsNullOrEmpty(Model.Summary))
+        {
+            <p class="lead">@Model.Summary</p>
+        }
+        @if (!string.IsNullOrEmpty(Model.BodyHtml))
+        {
+            @* Rich text written by college staff in the CMS. *@
+            @Html.RichText(Model.BodyHtml)
+        }
+    </div>
+</div>

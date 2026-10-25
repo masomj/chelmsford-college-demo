@@ -1,0 +1,153 @@
+@model CourseViewModel
+@{
+    var c = Model.Course;
+    IReadOnlyList<(string Text, string? Url)> crumbs = [("Home", "/"), ("Courses", Model.CoursesUrl), (c.Subject, Model.CoursesUrl + "?subject=" + Uri.EscapeDataString(c.Subject))];
+    var contact = c.ContactEmail ?? "courses@example.ac.uk";
+}
+
+<section class="course-hero on-dark" aria-labelledby="course-title">
+    <div class="wrap course-hero__grid">
+        <div>
+            <partial name="~/Views/Shared/_Breadcrumb.cshtml" model="crumbs" />
+            <p class="tag tag--solid-green">@c.LevelShort · @c.StudyMode@(c.Duration is null ? null : " · " + c.Duration)</p>
+            <h1 id="course-title">@c.Heading</h1>
+            @if (!string.IsNullOrEmpty(Model.Intro))
+            {
+                <p>@Model.Intro</p>
+            }
+            @if (!string.IsNullOrEmpty(Model.CampaignMessage))
+            {
+                <p class="course-campaign">@Model.CampaignMessage</p>
+            }
+        </div>
+        <div class="course-hero__media">
+            @Html.Picture(Model.Picture, "(min-width: 64rem) 600px, 100vw", "course-hero__img", eager: true, alt: Model.Picture.Url is null ? "" : null)
+        </div>
+    </div>
+</section>
+
+<div class="wrap course-layout">
+    <section class="glance" aria-labelledby="glance-heading">
+        <h2 id="glance-heading">At a glance</h2>
+        <dl class="facts">
+            <div><dt>Level</dt><dd>@c.LevelLong</dd></div>
+            <div><dt>Duration</dt><dd>@(c.Duration ?? "Contact us")</dd></div>
+            <div><dt>Start date</dt><dd>@(c.StartDate is { } sd ? sd.ToString("d MMMM yyyy", UkTime.Culture) : c.StartLabel)</dd></div>
+            <div><dt>Study mode</dt><dd>@c.StudyMode</dd></div>
+            <div><dt>Campus</dt><dd>@c.Campus</dd></div>
+            <div><dt>Course fee</dt><dd>@Model.FeeLabel</dd></div>
+            <div class="facts__wide"><dt>Funding</dt><dd>@Model.FundingLabel</dd></div>
+            <div class="facts__wide">
+                <dt>Additional costs</dt>
+                <dd>
+                    @if (Model.AdditionalCosts.Count == 0)
+                    {
+                        @:None listed
+                    }
+                    else
+                    {
+                        <ul class="facts__list">
+                            @foreach (var line in Model.AdditionalCosts)
+                            {
+                                <li>@line</li>
+                            }
+                        </ul>
+                    }
+                </dd>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.EntrySummary))
+            {
+                <div class="facts__wide"><dt>Entry requirements</dt><dd>@Model.EntrySummary</dd></div>
+            }
+        </dl>
+        <div class="glance__actions">
+            <a class="btn" href="@Model.ApplyUrl">Apply now</a>
+            @if (Model.NextEvent is { } ev)
+            {
+                <a class="btn btn--ghost" href="@ev.Url">Book the @ev.Name</a>
+            }
+            <a class="btn btn--ghost" href="@Model.EnquireUrl">Enquire</a>
+        </div>
+        <p class="glance__contact">Questions? <a href="mailto:@contact">@contact</a></p>
+    </section>
+
+    <div class="course-main">
+        @if (Model.Sections.Count > 1)
+        {
+            <nav class="jump-links" aria-labelledby="jump-heading">
+                <h2 id="jump-heading">Jump to</h2>
+                <ul>
+                    @foreach (var s in Model.Sections)
+                    {
+                        <li><a href="#@s.Id">@s.ShortTitle</a></li>
+                    }
+                </ul>
+            </nav>
+        }
+
+        @* Every section is open in the HTML, so the page reads in full without JavaScript. With JavaScript,
+           site.js closes all but the first and makes each heading a button (aria-expanded, aria-controls). *@
+        <div class="course-sections" data-accordion>
+            @foreach (var s in Model.Sections)
+            {
+                <div class="acc" id="@s.Id" data-acc-section>
+                    <h2 class="acc__heading">
+                        <button class="acc__trigger" type="button" id="trigger-@s.Id" aria-expanded="true" aria-controls="panel-@s.Id" tabindex="-1" data-acc-trigger>
+                            <span>@s.Title</span>
+                            <svg class="acc__chevron" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"></path></svg>
+                        </button>
+                    </h2>
+                    <div class="acc__body prose" id="panel-@s.Id" role="region" aria-labelledby="trigger-@s.Id" data-acc-panel>
+                        @* Cleaned by the integration layer, then sanitised again before it is written to the page. *@
+                        @Html.RichText(s.Html)
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.StudentQuote))
+        {
+            <section class="section" aria-labelledby="story-heading">
+                <h2 id="story-heading">Student story</h2>
+                <figure class="quote">
+                    <blockquote><p>@Model.StudentQuote</p></blockquote>
+                    @if (!string.IsNullOrEmpty(Model.StudentName))
+                    {
+                        <figcaption>@Model.StudentName</figcaption>
+                    }
+                </figure>
+            </section>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.VideoEmbedUrl))
+        {
+            <section class="section" aria-labelledby="course-video-heading">
+                <h2 id="course-video-heading">See the course in action</h2>
+                <partial name="~/Views/Shared/_Video.cshtml" model="(Model.VideoEmbedUrl, Model.Picture, c.Heading)" />
+            </section>
+        }
+
+        <section class="section" aria-labelledby="visit-heading">
+            <div class="panel panel--green">
+                <h2 id="visit-heading">Come and see us</h2>
+                @if (Model.NextEvent is { } next)
+                {
+                    <p>Meet the tutors and see where you'll learn at our @next.Name on @UkTime.DayAndDate(next.StartsAt).</p>
+                    <a class="btn btn--ghost" href="@next.Url">Book the @next.Name</a>
+                }
+                else
+                {
+                    <p>Talk to our careers advice team about this course and how to apply.</p>
+                    <a class="btn btn--ghost" href="@Model.EnquireUrl">Contact us</a>
+                }
+            </div>
+        </section>
+
+        <p>Questions? Email <a href="mailto:@contact">@contact</a></p>
+    </div>
+</div>
+
+<div class="sticky-bar">
+    <a class="btn" href="@Model.ApplyUrl">Apply now</a>
+    <a class="btn btn--ghost" href="@Model.EnquireUrl">Enquire</a>
+</div>

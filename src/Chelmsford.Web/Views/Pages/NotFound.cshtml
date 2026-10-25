@@ -1,0 +1,16 @@
+@model SimplePageViewModel
+
+<div class="wrap page-bottom page-top">
+    <div class="prose">
+        <h1>Page not found</h1>
+        <p class="lead">@(Model.Summary ?? "If you typed the web address, check it is correct. If you pasted it, check you copied the whole address.")</p>
+        @if (!string.IsNullOrEmpty(Model.BodyHtml))
+        {
+            @Html.RichText(Model.BodyHtml)
+        }
+        else
+        {
+            <p>You can <a href="/courses/">search our courses</a>, see <a href="/events/">upcoming events</a> or go to the <a href="/">homepage</a>.</p>
+        }
+    </div>
+</div>
